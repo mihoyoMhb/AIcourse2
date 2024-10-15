@@ -1,3 +1,55 @@
+EmissionMatrix = function(readings, probs){
+  #' Readings includes the data returned from the second sensor.
+  #' reading[1] = salinity
+  #' reading[2] = phosphate
+  #' reading[3] = nitrogen
+  # If a readings is given, we can calculate the probabilities of every holes giving the data
+  # 40 holes
+  salinity = dnorm(readings[1], probs['salinity'][,1], probs['salinity'][,2], log = FALSE)
+  phosphate = dnorm(readings[2], probs['phosphate'][,1], probs['phosphate'][,2], log = FALSE)
+  nitrogen = dnorm(readings[3], probs['nitrogen'][,1], probs['nitrogen'][,2], log = FALSE)
+  emission = replicate(40, 0)
+  for (i in 1:40){
+    emission[i] = salinity[i]*phosphate[i]*nitrogen[i]
+  }
+  for (i in 1:40){
+    emission[i] = emission[i]/sum(emission)
+  }
+  return (emission)
+  
+}
+
+UpdateAlpha = function(nodes, alpha_prev, edges, emission_matrix){
+  alpha_curr = replicate(40, 0)
+}
+
+#' Core function of HMM method:
+HMM = function(alpha_pre, probs, readings, positions, edges, moveInfo){
+  tourist1 = positions[1]
+  tourist2 = positions[2]
+  
+  alpha_curr = replicate(40, 0)
+  #' First we need to check whether two tourists were be eaten in current round,
+  #' If so, update the probability of node where 'croc' was in to 1. Because we 
+  #' know where 'croc' is now.
+  if(tourist1 = -1 && tourist1 != NA){
+    croc_position = -1 * tourist1
+    alpha_curr[croc_position] = 1
+  }
+  else if(tourist2 = -1 && tourist2 != NA)
+  {
+    croc_position = -1 * tourist2
+    alpha_curr[croc_position] = 1
+  }
+  else{
+   # Else we calculate the alpha_curr with previous status using emission matrix
+    emission_matrix = EmissionMatrix(readings, probs)
+    
+  }
+  
+  
+}
+
 #' randomWC
 #'
 #' Control function for Where's Croc where moves are random.
