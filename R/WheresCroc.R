@@ -68,6 +68,46 @@ HMM = function(alpha_pre, probs, readings, positions, edges, moveInfo){
   return(alpha_curr)
 }
 
+bfsSearch=function(node,startNode, goalNode, edges){
+  visited=c(node)
+  queue=c(node)
+  parents=replicate(40,0)
+  visited[startNode]=TRUE
+  parent[startNode]=NA
+  
+  while (length(queue)!=0){
+    currentNode =queue[1] # insert the first node as current node
+    queeue =stediff(queue, c(currentNode)) # remove current node from queue
+    neighbors =getOption(currentNode, edges)
+    neighbors=setdiff(nighbors, c(currentNode))# remove current node from neighbors
+    neighbors=setdiff(nighbors, visited) # remove visited node fro neighbors
+    
+    
+    }
+    
+    for(node in neighbors){
+      #  if the node hasn't been visited
+      if (!(node %in% visited)){
+        queue=c(queue, node) # add this node to queue
+        parents[node]=currentNode # record current node as parents node
+        visited=c(visited,c(node))
+      }
+    }
+   
+   if (currentNode==goalNode){
+      break
+    
+  }
+  # reconstruct path from goal node
+  currentNode=goalNode
+  path=numeri()
+  while (is.na(currentNode) && currentNode !=startNode){
+    path=c(currentNode, path)
+    currentNode=parents[currentNode]
+  }
+  return (path)
+}
+
 #' randomWC
 #'
 #' Control function for Where's Croc where moves are random.
