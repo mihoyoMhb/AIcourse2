@@ -19,8 +19,20 @@ EmissionMatrix = function(readings, probs){
   
 }
 
-UpdateAlpha = function(nodes, alpha_prev, edges, emission_matrix){
+UpdateAlpha = function(alpha_prev, edges, emission_matrix){
   alpha_curr = replicate(40, 0)
+  for(i in 1:length(alpha_curr)){
+    # Get all neighbors
+    neighbor = getOptions(i, edges)
+    sum = 0
+    for(nei in neighbor){
+      # 1/length(getOptions(nei, edges)) means the transition probability of 
+      # the node
+      sum = sum + 1/length(getOptions(nei, edges)) * alpha_prev[nei]
+    }
+    alpha_curr[i] = sum * emission_matrix[i]
+  }
+  return (alpha_curr)
 }
 
 #' Core function of HMM method:
@@ -44,10 +56,16 @@ HMM = function(alpha_pre, probs, readings, positions, edges, moveInfo){
   else{
    # Else we calculate the alpha_curr with previous status using emission matrix
     emission_matrix = EmissionMatrix(readings, probs)
-    
+    alpha_curr = UpdateAlpha(alpha_pre, edges, emission_matrix)
+    my_position = positions[3]
+    # I should not be with 'croc' in the same positiosn
+    alpha_curr[my_position] = 0
+    # Normalize probs
+    for (i in 1:length(alpha_curr)){
+      alpha_curr[i] = alpha_curr[i] / sum(alpha_curr)
+    }
   }
-  
-  
+  return(alpha_curr)
 }
 
 #' randomWC
