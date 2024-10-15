@@ -108,6 +108,61 @@ bfsSearch=function(node,startNode, goalNode, edges){
   return (path)
 }
 
+#' myFunction
+myFunction = function(moveInfo,readings,positions,edges,probs) {
+  me = positions[[3]]
+  status = moveInfo[["mem"]][["status"]]
+  # check if new game
+  if (status == 0 || status == 1) {
+    
+    prev_f = replicate(40, 1)
+    counter = 40
+    prev_f[positions[[1]]]=0
+    # when tourist1 and tourist2 are not on the same node
+    if (tourist[[2]] != tourist[[1]]){
+      prev_f[tourist[[2]=0
+      counter=counter-1
+    }
+    
+     prev_f=prev_f/counter
+    moveInfo[["mem"]][["prev_f"]] = prev_f
+  }
+  prev_f = moveInfo[["mem"]][["prev_f"]]
+  new_f = hiddenMarkov(prev_f, probs, readings, positions, edges)
+  goal = which.max(new_f)
+  
+  # if goal is in neighboring node, go there
+  neighbors = getOptions(positions[3], edges)
+  
+  if(goal %in% neighbors){
+    moveInfo$moves = c(goal,0)
+    return (moveInfo)
+  }
+  
+  # make bfs search for the shortest path to goal node
+  path = bfsSearch(positions[3], goal, edges)
+  
+  # at goal node, search for croc
+  if(length(path) == 0){
+    moveInfo$moves=c(0,0)  
+  }
+  
+  # one node away from goal
+  if(length(path) == 1){
+    moveInfo$moves = c(path[1], 0)
+  }
+  
+  # two nodes away from goal
+  if(length(path) >= 2) {
+    moveInfo$moves = c(path[1], path[2])
+  }
+  
+  moveInfo[['mem']][["prev_f"]] = new_f
+  moveInfo[["mem"]][["status"]] = 2
+  
+  return(moveInfo)
+}
+
 #' randomWC
 #'
 #' Control function for Where's Croc where moves are random.
