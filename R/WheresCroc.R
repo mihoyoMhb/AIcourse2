@@ -44,11 +44,11 @@ HMM = function(alpha_pre, probs, readings, positions, edges, moveInfo){
   #' First we need to check whether two tourists were be eaten in current round,
   #' If so, update the probability of node where 'croc' was in to 1. Because we 
   #' know where 'croc' is now.
-  if(tourist1 = -1 && tourist1 != NA){
+  if(tourist1 == -1 && tourist1 != NA){
     croc_position = -1 * tourist1
     alpha_curr[croc_position] = 1
   }
-  else if(tourist2 = -1 && tourist2 != NA)
+  else if(tourist2 == -1 && tourist2 != NA)
   {
     croc_position = -1 * tourist2
     alpha_curr[croc_position] = 1
@@ -68,59 +68,57 @@ HMM = function(alpha_pre, probs, readings, positions, edges, moveInfo){
   return(alpha_curr)
 }
 
-bfsSearch=function(node,startNode, goalNode, edges){
-  visited=c(node)
-  queue=c(node)
-  parents=replicate(40,0)
-  visited[startNode]=TRUE
-  parent[startNode]=NA
-  
-  while (length(queue)!=0){
-    currentNode =queue[1] # insert the first node as current node
-    queeue =stediff(queue, c(currentNode)) # remove current node from queue
-    neighbors =getOption(currentNode, edges)
-    neighbors=setdiff(nighbors, c(currentNode))# remove current node from neighbors
-    neighbors=setdiff(nighbors, visited) # remove visited node fro neighbors
+bfsSearch = function(startNode, goalNode, edges) {
+  visited = c()
+  queue = c(startNode)
+  parents = replicate(40, NA)
+  visited = c(visited, startNode)
+  parents[startNode] = NA
+
+  while (length(queue) != 0) {
+    currentNode = queue[1]
+    queue = queue[-1]
     
-    
+    if (currentNode == goalNode) {
+      break
     }
-    
-    for(node in neighbors){
-      #  if the node hasn't been visited
-      if (!(node %in% visited)){
-        queue=c(queue, node) # add this node to queue
-        parents[node]=currentNode # record current node as parents node
-        visited=c(visited,c(node))
+
+    neighbors = getOptions(currentNode, edges)
+    neighbors = setdiff(neighbors, visited)
+
+    for (neighbor in neighbors) {
+      if (!(neighbor %in% visited)) {
+        queue = c(queue, neighbor)
+        parents[neighbor] = currentNode
+        visited = c(visited, neighbor)
       }
     }
-   
-   if (currentNode==goalNode){
-      break
-    
   }
-  # reconstruct path from goal node
-  currentNode=goalNode
-  path=numeri()
-  while (is.na(currentNode) && currentNode !=startNode){
-    path=c(currentNode, path)
-    currentNode=parents[currentNode]
+
+  # Reconstruct path from goal node
+  currentNode = goalNode
+  path = numeric()
+  while (!is.na(currentNode) && currentNode != startNode) {
+    path = c(currentNode, path)
+    currentNode = parents[currentNode]
   }
-  return (path)
+  return(path)
 }
+
 
 #' myFunction
 myFunction = function(moveInfo,readings,positions,edges,probs) {
-  me = positions[[3]]
+  me = positions[3]
   status = moveInfo[["mem"]][["status"]]
   # check if new game
   if (status == 0 || status == 1) {
     
     prev_f = replicate(40, 1)
     counter = 40
-    prev_f[positions[[1]]]=0
+    prev_f[positions[1]]=0
     # when tourist1 and tourist2 are not on the same node
-    if (tourist[[2]] != tourist[[1]]){
-      prev_f[tourist[[2]=0
+    if (positions[2] != positions[1]){
+      prev_f[positions[2]]=0
       counter=counter-1
     }
     
