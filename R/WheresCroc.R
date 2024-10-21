@@ -1,3 +1,10 @@
+#' The code implementation of this assignment was developed collaboratively by 
+#' our group and is hosted on GitHub. The repository link is: 
+#' https://github.com/mihoyoMhb/AIcourse2
+#' Group members:
+#' Hangbiao Meng
+#' Yuanjing Yang
+#' Linjia Zhong
 EmissionMatrix = function(readings, probs){
   #' Readings includes the data returned from the second sensor.
   #' reading[1] = salinity
