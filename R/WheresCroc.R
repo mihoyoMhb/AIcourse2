@@ -155,7 +155,8 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   goal = which.max(new_f)
   
   neighbors_me = neighbors[[me]]
-  # The croc is there, catch it!
+  #' The croc is there, catch it!
+  #' the second parameter 0 means search here
   if (goal == me) {
     # me with croc
     moveInfo$moves = c(0, 0)
