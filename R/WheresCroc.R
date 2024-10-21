@@ -5,161 +5,166 @@ EmissionMatrix = function(readings, probs){
   #' reading[3] = nitrogen
   # If a readings is given, we can calculate the probabilities of every holes giving the data
   # 40 holes
-  salinity = dnorm(readings[1], probs['salinity'][,1], probs['salinity'][,2], log = FALSE)
-  phosphate = dnorm(readings[2], probs['phosphate'][,1], probs['phosphate'][,2], log = FALSE)
-  nitrogen = dnorm(readings[3], probs['nitrogen'][,1], probs['nitrogen'][,2], log = FALSE)
-  emission = replicate(40, 0)
-  for (i in 1:40){
-    emission[i] = salinity[i]*phosphate[i]*nitrogen[i]
-  }
-  for (i in 1:40){
-    emission[i] = emission[i]/sum(emission)
-  }
+  salinity = dnorm(readings[1], probs$salinity[,1], probs$salinity[,2], log = FALSE)
+  phosphate = dnorm(readings[2], probs$phosphate[,1], probs$phosphate[,2], log = FALSE)
+  nitrogen = dnorm(readings[3], probs$nitrogen[,1], probs$nitrogen[,2], log = FALSE)
+  emission = salinity * phosphate * nitrogen
+  emission = emission / sum(emission)
   return (emission)
+}
+
+computeTransitionMatrix = function(edges){
+  N = 40
+  # The transition matrix
+  P = matrix(0, nrow = N, ncol = N)
   
-}
-
-UpdateAlpha = function(alpha_prev, edges, emission_matrix){
-  alpha_curr = replicate(40, 0)
-  for(i in 1:length(alpha_curr)){
-    # Get all neighbors
-    neighbor = getOptions(i, edges)
-    sum = 0
-    for(nei in neighbor){
-      # 1/length(getOptions(nei, edges)) means the transition probability of 
-      # the node
-      sum = sum + 1/length(getOptions(nei, edges)) * alpha_prev[nei]
-    }
-    alpha_curr[i] = sum * emission_matrix[i]
+  # The list of neighboring nodes for each node.
+  neighbors_list = vector("list", N)
+  
+  for (j in 1:N){
+    # Transfer from j its self and neighborhoods
+    options_j = getOptions(j, edges)
+    # As we can see, it is a uniform distribution
+    num_options = length(options_j)
+    prob = 1 / num_options
+    P[options_j, j] = prob
+    # The list of neighbors for node j is stored in the neighbors_list at index 
+    # j, so we can use them later, avoiding call method getOptions too many times.
+    neighbors_list[[j]] = options_j
   }
-  return (alpha_curr)
+  return(list(P = P, neighbors = neighbors_list))
 }
 
-#' Core function of HMM method:
-HMM = function(alpha_pre, probs, readings, positions, edges, moveInfo){
+UpdateAlpha = function(alpha_prev, P, emission_matrix){
+  # Matrix explaination: P * alpha_prev means transfer from the previous node(i|i-1)
+  alpha_curr = (P %*% alpha_prev) * emission_matrix
+  return(as.vector(alpha_curr))
+}
+
+# HMM core function
+HMM = function(alpha_pre, probs, readings, positions, P){
   tourist1 = positions[1]
   tourist2 = positions[2]
+  my_position = positions[3]
   
-  alpha_curr = replicate(40, 0)
-  #' First we need to check whether two tourists were be eaten in current round,
-  #' If so, update the probability of node where 'croc' was in to 1. Because we 
-  #' know where 'croc' is now.
-  if(tourist1 == -1 && tourist1 != NA){
-    croc_position = -1 * tourist1
+  alpha_curr = numeric(40)
+  # The first 2 if, means someone was eaten and we immediately know where the
+  # worm is.
+  if (!is.na(tourist1) && tourist1 < 0){
+    croc_position = -tourist1
     alpha_curr[croc_position] = 1
-  }
-  else if(tourist2 == -1 && tourist2 != NA)
-  {
-    croc_position = -1 * tourist2
+  } else if (!is.na(tourist2) && tourist2 < 0){
+    croc_position = -tourist2
     alpha_curr[croc_position] = 1
-  }
-  else{
-   # Else we calculate the alpha_curr with previous status using emission matrix
+  } else {
     emission_matrix = EmissionMatrix(readings, probs)
-    alpha_curr = UpdateAlpha(alpha_pre, edges, emission_matrix)
-    my_position = positions[3]
-    # I should not be with 'croc' in the same positiosn
-    alpha_curr[my_position] = 0
-    # Normalize probs
-    for (i in 1:length(alpha_curr)){
-      alpha_curr[i] = alpha_curr[i] / sum(alpha_curr)
-    }
+    alpha_curr = UpdateAlpha(alpha_pre, P, emission_matrix)
+    alpha_curr = alpha_curr / sum(alpha_curr)
   }
   return(alpha_curr)
 }
 
-bfsSearch = function(startNode, goalNode, edges) {
-  visited = c()
+#' bfsSearch maybe can be change to another type
+#' Source: 
+bfsSearch = function(startNode, goalNode, neighbors) {
+  visited = rep(FALSE, 40)
   queue = c(startNode)
-  parents = replicate(40, NA)
-  visited = c(visited, startNode)
-  parents[startNode] = NA
-
-  while (length(queue) != 0) {
+  parents = rep(NA, 40)
+  visited[startNode] = TRUE
+  
+  while (length(queue) > 0) {
     currentNode = queue[1]
     queue = queue[-1]
     
     if (currentNode == goalNode) {
       break
     }
-
-    neighbors = getOptions(currentNode, edges)
-    neighbors = setdiff(neighbors, visited)
-
-    for (neighbor in neighbors) {
-      if (!(neighbor %in% visited)) {
-        queue = c(queue, neighbor)
+    
+    neighbors_current = neighbors[[currentNode]]
+    
+    for (neighbor in neighbors_current) {
+      if (!visited[neighbor]) {
+        visited[neighbor] = TRUE
         parents[neighbor] = currentNode
-        visited = c(visited, neighbor)
+        queue = c(queue, neighbor)
       }
     }
   }
-
-  # Reconstruct path from goal node
+  
+  path = c()
   currentNode = goalNode
-  path = numeric()
   while (!is.na(currentNode) && currentNode != startNode) {
     path = c(currentNode, path)
     currentNode = parents[currentNode]
   }
-  return(path)
+  
+  if (is.na(currentNode)) {
+    return(integer(0))
+  } else {
+    return(path)
+  }
 }
 
-
-#' myFunction
-myFunction = function(moveInfo,readings,positions,edges,probs) {
+# myFunction 
+myFunction = function(moveInfo, readings, positions, edges, probs) {
   me = positions[3]
   status = moveInfo[["mem"]][["status"]]
-  # check if new game
+  #' computeTransitionMatrix(edges) above is called to create P (transition matrix) 
+  #' and neighbors (list of neighbors for each node)
+  if (is.null(moveInfo[["mem"]][["P"]])) {
+    trans_data = computeTransitionMatrix(edges)
+    P = trans_data$P
+    neighbors = trans_data$neighbors
+    moveInfo[["mem"]][["P"]] = P
+    moveInfo[["mem"]][["neighbors"]] = neighbors
+  } else {
+    P = moveInfo[["mem"]][["P"]]
+    neighbors = moveInfo[["mem"]][["neighbors"]]
+  }
+  
+
   if (status == 0 || status == 1) {
-    
-    prev_f = replicate(40, 1)
-    counter = 40
-    prev_f[positions[1]]=0
-    # when tourist1 and tourist2 are not on the same node
-    if (positions[2] != positions[1]){
-      prev_f[positions[2]]=0
-      counter=counter-1
+    prev_f = rep(1, 40)
+    # AT first, the corc should not be with tourists
+    if (!is.na(positions[1]) && positions[1] > 0){
+      prev_f[positions[1]] = 0
     }
-    
-     prev_f=prev_f/counter
+    if (!is.na(positions[2]) && positions[2] > 0){
+      prev_f[positions[2]] = 0
+    }
+    prev_f = prev_f / sum(prev_f)
     moveInfo[["mem"]][["prev_f"]] = prev_f
   }
+  
   prev_f = moveInfo[["mem"]][["prev_f"]]
-  new_f = hiddenMarkov(prev_f, probs, readings, positions, edges)
+  new_f = HMM(prev_f, probs, readings, positions, P)
   goal = which.max(new_f)
   
-  # if goal is in neighboring node, go there
-  neighbors = getOptions(positions[3], edges)
-  
-  if(goal %in% neighbors){
-    moveInfo$moves = c(goal,0)
-    return (moveInfo)
-  }
-  
-  # make bfs search for the shortest path to goal node
-  path = bfsSearch(positions[3], goal, edges)
-  
-  # at goal node, search for croc
-  if(length(path) == 0){
-    moveInfo$moves=c(0,0)  
-  }
-  
-  # one node away from goal
-  if(length(path) == 1){
-    moveInfo$moves = c(path[1], 0)
-  }
-  
-  # two nodes away from goal
-  if(length(path) >= 2) {
-    moveInfo$moves = c(path[1], path[2])
+  neighbors_me = neighbors[[me]]
+  # The croc is there, catch it!
+  if (goal == me) {
+    # me with croc
+    moveInfo$moves = c(0, 0)
+  } else if (goal %in% neighbors_me) {
+    # croc is next to me 
+    moveInfo$moves = c(goal, 0)
+  } else {
+    path = bfsSearch(me, goal, neighbors)
+    if (length(path) >= 2) {
+      moveInfo$moves = c(path[1], path[2])
+    } else if (length(path) == 1){
+      moveInfo$moves = c(path[1], 0)
+    } else {
+      moveInfo$moves = c(0, 0)
+    }
   }
   
   moveInfo[['mem']][["prev_f"]] = new_f
-  moveInfo[["mem"]][["status"]] = 2
+  moveInfo[["mem"]][["status"]] = 2 # Game is running
   
   return(moveInfo)
 }
+
 
 #' randomWC
 #'
@@ -360,12 +365,12 @@ runWheresCroc=function(makeMoves,doPlot=T,showCroc=F,pause=1,verbose=T,returnMem
     }
     else
       first=F
-
+    
     if (doPlot)
       plotGameboard(points,edges,move,positions,showCroc)
-
+    
     Sys.sleep(pause)
-
+    
     readings=getReadings(positions[1],probs)
     moveInfo=makeMoves(moveInfo,readings,positions[2:4],edges,probs)
     if (length(moveInfo$moves)!=2) {
@@ -511,7 +516,7 @@ getEdges=function() {
   edges=rbind(edges,c(37,39))
   edges=rbind(edges,c(37,40))
   edges=rbind(edges,c(38,39))
-
+  
   return (edges)
 }
 
