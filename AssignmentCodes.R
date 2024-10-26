@@ -138,7 +138,7 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   
   
   if (status == 0 || status == 1) {
-    prev_f = rep(1, 40)
+    prev_f = rep(1, 40)# starts with equal probabilities for each node
     # AT first, the corc should not be with tourists
     if (!is.na(positions[1]) && positions[1] > 0){
       prev_f[positions[1]] = 0
@@ -146,18 +146,17 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
     if (!is.na(positions[2]) && positions[2] > 0){
       prev_f[positions[2]] = 0
     }
-    prev_f = prev_f / sum(prev_f)
+    prev_f = prev_f / sum(prev_f) #the probability distribution is normalized
     moveInfo[["mem"]][["prev_f"]] = prev_f
   }
   
   prev_f = moveInfo[["mem"]][["prev_f"]]
   new_f = HMM(prev_f, probs, readings, positions, P)
-  goal = which.max(new_f)
+  goal = which.max(new_f) #after running HMM, the goal node is selected as the node with the highest probs
   
   neighbors_me = neighbors[[me]]
   #' The croc is there, catch it!
   #' the second parameter 0 means search here
-  # The croc is there, catch it!
   if (goal == me) {
     # me with croc
     moveInfo$moves = c(0, 0)
@@ -178,5 +177,56 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   moveInfo[['mem']][["prev_f"]] = new_f
   moveInfo[["mem"]][["status"]] = 2 # Game is running
   
+  return(moveInfo)
+}
+
+
+#' randomWC
+#'
+#' Control function for Where's Croc where moves are random.
+#' @param moveInfo See runWheresCroc for details
+#' @param readings See runWheresCroc for details
+#' @param positions See runWheresCroc for details
+#' @param edges See runWheresCroc for details
+#' @param probs See runWheresCroc for details
+#' @return See runWheresCroc for details
+#' @export
+randomWC=function(moveInfo,readings,positions,edges,probs) {
+  moveInfo$moves=c(sample(getOptions(positions[3],edges),1),0)
+  return(moveInfo)
+}
+
+#' manualWC
+#'
+#' Control function for Where's Croc that allows manual play using keyboard.
+#' @param moveInfo See runWheresCroc for details
+#' @param readings See runWheresCroc for details
+#' @param positions See runWheresCroc for details
+#' @param edges See runWheresCroc for details
+#' @param probs See runWheresCroc for details
+#' @return See runWheresCroc for details
+#' @export
+manualWC=function(moveInfo,readings,positions,edges,probs) {
+  options=getOptions(positions[3],edges)
+  print("Move 1 options (plus 0 for search):")
+  print(options)
+  mv1=readline("Move 1: ")
+  if (mv1=="q") {stop()}
+  if (!mv1 %in% options && mv1 != 0) {
+    warning ("Invalid move. Search ('0') specified.")
+    mv1=0
+  }
+  if (mv1!=0) {
+    options=getOptions(mv1,edges)
+  }
+  print("Move 2 options (plus 0 for search):")
+  print(options)
+  mv2=readline("Move 2: ")
+  if (mv2=="q") {stop()}
+  if (!mv1 %in% options && mv1 != 0) {
+    warning ("Invalid move. Search ('0') specified.")
+    mv2=0
+  }
+  moveInfo$moves=c(mv1,mv2)
   return(moveInfo)
 }

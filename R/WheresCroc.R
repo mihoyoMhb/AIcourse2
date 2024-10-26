@@ -138,7 +138,7 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
   
 
   if (status == 0 || status == 1) {
-    prev_f = rep(1, 40)
+    prev_f = rep(1, 40)# starts with equal probabilities for each node
     # AT first, the corc should not be with tourists
     if (!is.na(positions[1]) && positions[1] > 0){
       prev_f[positions[1]] = 0
@@ -146,13 +146,13 @@ myFunction = function(moveInfo, readings, positions, edges, probs) {
     if (!is.na(positions[2]) && positions[2] > 0){
       prev_f[positions[2]] = 0
     }
-    prev_f = prev_f / sum(prev_f)
+    prev_f = prev_f / sum(prev_f) #the probability distribution is normalized
     moveInfo[["mem"]][["prev_f"]] = prev_f
   }
   
   prev_f = moveInfo[["mem"]][["prev_f"]]
   new_f = HMM(prev_f, probs, readings, positions, P)
-  goal = which.max(new_f)
+  goal = which.max(new_f) #after running HMM, the goal node is selected as the node with the highest probs
   
   neighbors_me = neighbors[[me]]
   #' The croc is there, catch it!
